@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QueueCare - Appointments</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f4f8; min-height: 100vh; }
+    header { background: #2b6cb0; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.25rem; }
+    header button { background: transparent; border: 1px solid #fff; color: #fff; padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .section { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #2d3748; }
+    label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #4a5568; }
+    input { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 0.95rem; margin-bottom: 0.75rem; }
+    input:focus { outline: none; border-color: #4299e1; }
+    .btn { padding: 0.55rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: #4299e1; color: #fff; }
+    .btn-primary:hover { background: #3182ce; }
+    .btn-danger { background: #fc8181; color: #fff; }
+    .btn-danger:hover { background: #e53e3e; }
+    .btn-success { background: #68d391; color: #fff; }
+    .btn-success:hover { background: #38a169; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+    .error { color: #e53e3e; font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+    .success { color: #38a169; font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.6rem; background: #edf2f7; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 0.6rem; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; }
+    .badge-scheduled { background: #bee3f8; color: #2b6cb0; }
+    .badge-completed { background: #c6f6d5; color: #276749; }
+    .badge-canceled { background: #fed7d7; color: #9b2c2c; }
+    #appointments-table-body tr[data-testid] { }
+    .empty-state { text-align: center; color: #a0aec0; padding: 2rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>QueueCare</h1>
+    <button data-testid="logout-button" onclick="logout()">Logout</button>
+  </header>
+
+  <div class="container">
+
+    <!-- Book Appointment -->
+    <div class="section">
+      <h2>Book Appointment</h2>
+      <form id="book-form" novalidate>
+        <label for="doctor">Doctor</label>
+        <input id="doctor" type="text" data-testid="doctor-input" placeholder="Doctor name" required />
+
+        <label for="appointment-date">Date</label>
+        <input id="appointment-date" type="date" data-testid="date-input" required />
+
+        <label for="reason">Reason</label>
+        <input id="reason" type="text" data-testid="reason-input" placeholder="Reason for visit" required />
+
+        <button type="submit" class="btn btn-primary" data-testid="book-button">Book</button>
+        <p id="book-error" class="error" data-testid="book-error"></p>
+        <p id="book-success" class="success" data-testid="book-success"></p>
+      </form>
+    </div>
+
+    <!-- My Appointments -->
+    <div class="section">
+      <h2>My Appointments</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Reason</th>
+            <th>Queue</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="appointments-table-body" data-testid="appointments-list">
+          <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Today's Queue (staff/admin only) -->
+    <div class="section" id="queue-section" style="display:none;">
+      <h2>Today's Queue</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Queue #</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="queue-table-body" data-testid="queue-list">
+          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; justify-content:center; align-items:center;">
+    <div style="background:#fff; padding:2rem; border-radius:8px; width:100%; max-width:400px;">
+      <h2 style="margin-bottom:1rem; font-size:1.1rem;">Update Appointment</h2>
+      <input type="hidden" id="edit-id" />
+      <label>Doctor</label>
+      <input id="edit-doctor" type="text" data-testid="edit-doctor-input" />
+      <label>Date</label>
+      <input id="edit-date" type="date" data-testid="edit-date-input" />
+      <label>Reason</label>
+      <input id="edit-reason" type="text" data-testid="edit-reason-input" />
+      <p id="edit-error" class="error" data-testid="edit-error"></p>
+      <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+        <button class="btn btn-primary" data-testid="edit-save-button" onclick="saveEdit()">Save</button>
+        <button class="btn" style="background:#e2e8f0;" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    }
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+    }
+
+    function badgeClass(status) {
+      return { SCHEDULED: 'badge-scheduled', COMPLETED: 'badge-completed', CANCELED: 'badge-canceled' }[status] || '';
+    }
+
+    // Load appointments
+    async function loadAppointments() {
+      const tbody = document.getElementById('appointments-table-body');
+      try {
+        const res = await fetch('/appointments', { headers: authHeaders() });
+        if (res.status === 401) { logout(); return; }
+        const data = await res.json();
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No appointments yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map((a, i) => `
+          <tr data-testid="appointment-row-${a.id}">
+            <td>${i + 1}</td>
+            <td>${a.doctor}</td>
+            <td>${a.appointmentDate}</td>
+            <td>${a.reason}</td>
+            <td>${a.queueNumber}</td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+            <td>
+              ${a.status === 'SCHEDULED' ? `
+                <button class="btn btn-primary btn-sm" data-testid="edit-button-${a.id}" onclick="openEdit(${a.id}, '${a.doctor}', '${a.appointmentDate}', '${a.reason}')">Edit</button>
+                <button class="btn btn-danger btn-sm" data-testid="cancel-button-${a.id}" onclick="cancelAppointment(${a.id})">Cancel</button>
+              ` : '-'}
+            </td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Failed to load appointments.</td></tr>';
+      }
+    }
+
+    // Load today's queue
+    async function loadQueue() {
+      const tbody = document.getElementById('queue-table-body');
+      try {
+        const res = await fetch('/queue/today', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('queue-section').style.display = 'block';
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No patients in queue today.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(a => `
+          <tr data-testid="queue-row-${a.id}">
+            <td>${a.queueNumber}</td>
+            <td>${a.patientName}</td>
+            <td>${a.doctor}</td>
+            <td>${a.reason}</td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+            <td>
+              ${a.status === 'SCHEDULED' ? `
+                <button class="btn btn-success btn-sm" data-testid="serve-button-${a.id}" onclick="markServed(${a.id})">Mark Served</button>
+              ` : '-'}
+            </td>
+          </tr>`).join('');
+      } catch { /* patient role - queue section stays hidden */ }
+    }
+
+    // Book appointment
+    document.getElementById('book-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('book-error');
+      const successEl = document.getElementById('book-success');
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      const doctor = document.getElementById('doctor').value.trim();
+      const appointmentDate = document.getElementById('appointment-date').value;
+      const reason = document.getElementById('reason').value.trim();
+
+      if (!doctor || !appointmentDate || !reason) {
+        errorEl.textContent = 'All fields are required.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const res = await fetch('/appointments', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ doctor, appointmentDate, reason })
+      });
+
+      if (res.status === 400) {
+        const data = await res.json();
+        errorEl.textContent = data.error || 'Invalid input.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (res.status === 409) {
+        errorEl.textContent = 'You already have an appointment on this date.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (!res.ok) {
+        errorEl.textContent = 'Failed to book appointment.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      successEl.textContent = 'Appointment booked successfully!';
+      successEl.style.display = 'block';
+      document.getElementById('book-form').reset();
+      loadAppointments();
+      loadQueue();
+    });
+
+    // Cancel appointment
+    async function cancelAppointment(id) {
+      if (!confirm('Cancel this appointment?')) return;
+      const res = await fetch('/appointments/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok) { loadAppointments(); loadQueue(); }
+    }
+
+    // Edit modal
+    function openEdit(id, doctor, date, reason) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-doctor').value = doctor;
+      document.getElementById('edit-date').value = date;
+      document.getElementById('edit-reason').value = reason;
+      document.getElementById('edit-error').style.display = 'none';
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    async function saveEdit() {
+      const errorEl = document.getElementById('edit-error');
+      errorEl.style.display = 'none';
+      const id = document.getElementById('edit-id').value;
+      const doctor = document.getElementById('edit-doctor').value.trim();
+      const appointmentDate = document.getElementById('edit-date').value;
+      const reason = document.getElementById('edit-reason').value.trim();
+
+      if (!doctor || !appointmentDate || !reason) {
+        errorEl.textContent = 'All fields are required.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const res = await fetch('/appointments/' + id, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ doctor, appointmentDate, reason })
+      });
+
+      if (res.status === 400) {
+        const data = await res.json();
+        errorEl.textContent = data.error || 'Invalid input.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (!res.ok) {
+        errorEl.textContent = 'Failed to update appointment.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      closeModal();
+      loadAppointments();
+    }
+
+    // Mark as served
+    async function markServed(id) {
+      const res = await fetch('/queue/' + id + '/serve', { method: 'PATCH', headers: authHeaders() });
+      if (res.ok) { loadAppointments(); loadQueue(); }
+    }
+
+    // Init
+    loadAppointments();
+    loadQueue();
+  </script>
+</body>
+</html>
