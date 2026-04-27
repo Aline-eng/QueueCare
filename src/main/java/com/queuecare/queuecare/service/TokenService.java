@@ -15,4 +15,8 @@ public class TokenService {
     public static Long validateToken(String token) {
         return tokenStore.get(token);
     }
+
+    public static void clearTokens() {
+        tokenStore.clear();
+    }
 }
