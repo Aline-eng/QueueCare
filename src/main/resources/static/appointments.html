@@ -87,7 +87,7 @@
     </div>
 
     <!-- Today's Queue (staff/admin only) -->
-    <div class="section" id="queue-section" style="display:none;">
+    <div class="section" id="queue-section" data-testid="queue-section" style="display:none;">
       <h2>Today's Queue</h2>
       <table>
         <thead>
@@ -109,7 +109,7 @@
   </div>
 
   <!-- Edit Modal -->
-  <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; justify-content:center; align-items:center;">
+  <div id="edit-modal" data-testid="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; justify-content:center; align-items:center;">
     <div style="background:#fff; padding:2rem; border-radius:8px; width:100%; max-width:400px;">
       <h2 style="margin-bottom:1rem; font-size:1.1rem;">Update Appointment</h2>
       <input type="hidden" id="edit-id" />
@@ -122,7 +122,7 @@
       <p id="edit-error" class="error" data-testid="edit-error"></p>
       <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
         <button class="btn btn-primary" data-testid="edit-save-button" onclick="saveEdit()">Save</button>
-        <button class="btn" style="background:#e2e8f0;" onclick="closeModal()">Cancel</button>
+        <button class="btn" style="background:#e2e8f0;" data-testid="edit-cancel-button" onclick="closeModal()">Cancel</button>
       </div>
     </div>
   </div>
