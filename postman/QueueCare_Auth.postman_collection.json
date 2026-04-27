@@ -1,0 +1,443 @@
+{
+  "info": {
+    "name": "QueueCare - Auth & Appointments",
+    "_postman_id": "queuecare-collection",
+    "description": "Full test suite for QueueCare auth and appointment endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "authToken", "value": "" },
+    { "key": "staffToken", "value": "" },
+    { "key": "appointmentId", "value": "" },
+    { "key": "futureDate", "value": "2026-12-01" },
+    { "key": "anotherFutureDate", "value": "2026-12-15" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Happy Path",
+          "item": [
+            {
+              "name": "Register - Patient",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('Returns user with id', () => pm.expect(body.id).to.be.a('number'));",
+                "pm.test('Role defaults to PATIENT', () => pm.expect(body.role).to.eql('PATIENT'));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Alice Patient\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Register - Staff",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('Role is STAFF', () => pm.expect(pm.response.json().role).to.eql('STAFF'));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bob Staff\",\n  \"email\": \"bob.staff@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"STAFF\"\n}" }
+              }
+            },
+            {
+              "name": "Login - Patient",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('Returns a token', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+                "pm.collectionVariables.set('authToken', body.token);"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Login - Staff",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "pm.collectionVariables.set('staffToken', pm.response.json().token);"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"bob.staff@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative Cases",
+          "item": [
+            {
+              "name": "Login - Wrong Password",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"wrongpassword\"\n}" }
+              }
+            },
+            {
+              "name": "Login - Non-existent Email",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"ghost@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Register - Duplicate Email",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 409', () => pm.response.to.have.status(409));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Alice Duplicate\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Access Protected Endpoint - No Token",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/appointments"
+              }
+            },
+            {
+              "name": "Access Protected Endpoint - Invalid Token",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer invalid-token-xyz" }],
+                "url": "{{baseUrl}}/appointments"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edge Cases",
+          "item": [
+            {
+              "name": "Register - Missing Name",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"noname@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Register - Invalid Email Format",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bad Email\",\n  \"email\": \"not-an-email\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Register - Invalid Role Value",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bad Role\",\n  \"email\": \"badrole@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"SUPERUSER\"\n}" }
+              }
+            },
+            {
+              "name": "Login - Empty Body",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{baseUrl}}/auth/login",
+                "body": { "mode": "raw", "raw": "{}" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Happy Path",
+          "item": [
+            {
+              "name": "Create Appointment",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                "const body = pm.response.json();",
+                "pm.test('Has id', () => pm.expect(body.id).to.be.a('number'));",
+                "pm.test('Queue number assigned', () => pm.expect(body.queueNumber).to.be.a('number'));",
+                "pm.test('Status is SCHEDULED', () => pm.expect(body.status).to.eql('SCHEDULED'));",
+                "pm.collectionVariables.set('appointmentId', body.id);"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\",\n  \"appointmentDate\": \"{{futureDate}}\",\n  \"reason\": \"Annual checkup\"\n}" }
+              }
+            },
+            {
+              "name": "Get All Appointments - Patient sees only own",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('Returns array', () => pm.expect(body).to.be.an('array'));",
+                "pm.test('All belong to patient', () => body.forEach(a => pm.expect(a.patientName).to.eql('Alice Patient')));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+                "url": "{{baseUrl}}/appointments"
+              }
+            },
+            {
+              "name": "Get All Appointments - Staff sees all",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+                "url": "{{baseUrl}}/appointments"
+              }
+            },
+            {
+              "name": "Get Appointment By ID",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('Correct id returned', () => pm.expect(body.id).to.eql(parseInt(pm.collectionVariables.get('appointmentId'))));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}"
+              }
+            },
+            {
+              "name": "Update Appointment",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('Doctor updated', () => pm.expect(body.doctor).to.eql('Dr. Johnson'));",
+                "pm.test('Date updated', () => pm.expect(body.appointmentDate).to.eql(pm.collectionVariables.get('anotherFutureDate')));"
+              ]}}],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Johnson\",\n  \"appointmentDate\": \"{{anotherFutureDate}}\",\n  \"reason\": \"Follow-up\"\n}" }
+              }
+            },
+            {
+              "name": "Cancel Appointment",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('Status is CANCELED', () => pm.expect(pm.response.json().status).to.eql('CANCELED'));"
+              ]}}],
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative Cases",
+          "item": [
+            {
+              "name": "Get Appointment - No Token",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/appointments"
+              }
+            },
+            {
+              "name": "Get Appointment By ID - Not Found",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+                "url": "{{baseUrl}}/appointments/99999"
+              }
+            },
+            {
+              "name": "Get Appointment - Patient Accesses Another Patient's",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+              ]}}],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}"
+              }
+            },
+            {
+              "name": "Cancel Already-Cancelled Appointment",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 409', () => pm.response.to.have.status(409));"
+              ]}}],
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}"
+              }
+            },
+            {
+              "name": "Update Cancelled Appointment",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 409', () => pm.response.to.have.status(409));"
+              ]}}],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\",\n  \"appointmentDate\": \"{{futureDate}}\",\n  \"reason\": \"Checkup\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edge Cases",
+          "item": [
+            {
+              "name": "Create Appointment - Past Date",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\",\n  \"appointmentDate\": \"2020-01-01\",\n  \"reason\": \"Past date test\"\n}" }
+              }
+            },
+            {
+              "name": "Create Appointment - Missing Fields",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\"\n}" }
+              }
+            },
+            {
+              "name": "Create Appointment - Invalid Date Format",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\",\n  \"appointmentDate\": \"not-a-date\",\n  \"reason\": \"Test\"\n}" }
+              }
+            },
+            {
+              "name": "Duplicate Booking Same Day",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('First booking succeeds', () => pm.response.to.have.status(201));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Smith\",\n  \"appointmentDate\": \"2026-11-10\",\n  \"reason\": \"First booking\"\n}" }
+              }
+            },
+            {
+              "name": "Duplicate Booking Same Day - Second Attempt",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('Status is 409 - duplicate rejected', () => pm.response.to.have.status(409));"
+              ]}}],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{authToken}}" }
+                ],
+                "url": "{{baseUrl}}/appointments",
+                "body": { "mode": "raw", "raw": "{\n  \"doctor\": \"Dr. Adams\",\n  \"appointmentDate\": \"2026-11-10\",\n  \"reason\": \"Second booking same day\"\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
