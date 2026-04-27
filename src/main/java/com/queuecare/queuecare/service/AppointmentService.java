@@ -28,20 +28,16 @@ public class AppointmentService {
     public AppointmentResponse create(Long userId, AppointmentRequest request) {
         User patient = getUser(userId);
 
-        List<Appointment> existing = appointmentRepository.findByPatientAndAppointmentDate(patient, request.getAppointmentDate());
-        boolean hasActive = existing.stream().anyMatch(a -> a.getStatus() != Appointment.Status.CANCELED);
-        if (hasActive) {
+        if (hasActiveAppointmentOnDate(patient, request.getAppointmentDate(), null)) {
             throw new ConflictException("You already have an appointment on this date");
         }
-
-        int queueNumber = appointmentRepository.findByAppointmentDate(request.getAppointmentDate()).size() + 1;
 
         Appointment appointment = Appointment.builder()
                 .patient(patient)
                 .doctor(request.getDoctor())
                 .appointmentDate(request.getAppointmentDate())
                 .reason(request.getReason())
-                .queueNumber(queueNumber)
+                .queueNumber(nextQueueNumber(request.getAppointmentDate()))
                 .build();
 
         return AppointmentResponse.from(appointmentRepository.save(appointment));
@@ -71,6 +67,14 @@ public class AppointmentService {
             throw new ConflictException("Cannot update a cancelled appointment");
         }
 
+        if (hasActiveAppointmentOnDate(appointment.getPatient(), request.getAppointmentDate(), appointment.getId())) {
+            throw new ConflictException("You already have an appointment on this date");
+        }
+
+        if (!appointment.getAppointmentDate().equals(request.getAppointmentDate())) {
+            appointment.setQueueNumber(nextQueueNumber(request.getAppointmentDate()));
+        }
+
         appointment.setDoctor(request.getDoctor());
         appointment.setAppointmentDate(request.getAppointmentDate());
         appointment.setReason(request.getReason());
@@ -92,10 +96,16 @@ public class AppointmentService {
     }
 
     // TODAY'S QUEUE
-    public List<AppointmentResponse> getTodayQueue() {
+    public List<AppointmentResponse> getTodayQueue(Long userId) {
+        User user = getUser(userId);
+        if (!isPrivileged(user)) {
+            throw new ForbiddenException("Only staff or admin can view today's queue");
+        }
         return appointmentRepository
                 .findByAppointmentDateOrderByQueueNumberAsc(LocalDate.now())
-                .stream().map(AppointmentResponse::from).toList();
+                .stream()
+                .filter(appointment -> appointment.getStatus() != Appointment.Status.CANCELED)
+                .map(AppointmentResponse::from).toList();
     }
 
     // MARK AS SERVED
@@ -127,6 +137,18 @@ public class AppointmentService {
 
     private boolean isPrivileged(User user) {
         return user.getRole() == User.Role.STAFF || user.getRole() == User.Role.ADMIN;
+    }
+
+    private boolean hasActiveAppointmentOnDate(User patient, LocalDate appointmentDate, Long excludedAppointmentId) {
+        return appointmentRepository.findByPatientAndAppointmentDate(patient, appointmentDate).stream()
+                .filter(appointment -> excludedAppointmentId == null || !appointment.getId().equals(excludedAppointmentId))
+                .anyMatch(appointment -> appointment.getStatus() != Appointment.Status.CANCELED);
+    }
+
+    private int nextQueueNumber(LocalDate appointmentDate) {
+        return (int) appointmentRepository.findByAppointmentDate(appointmentDate).stream()
+                .filter(appointment -> appointment.getStatus() != Appointment.Status.CANCELED)
+                .count() + 1;
     }
 
     private void checkAccess(User user, Appointment appointment) {

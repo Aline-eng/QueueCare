@@ -18,8 +18,8 @@ public class QueueController {
     }
 
     @GetMapping("/today")
-    public List<AppointmentResponse> getTodayQueue() {
-        return appointmentService.getTodayQueue();
+    public List<AppointmentResponse> getTodayQueue(Authentication auth) {
+        return appointmentService.getTodayQueue(getUserId(auth));
     }
 
     @PatchMapping("/{id}/serve")

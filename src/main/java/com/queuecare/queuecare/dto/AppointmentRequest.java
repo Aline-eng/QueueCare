@@ -1,6 +1,6 @@
 package com.queuecare.queuecare.dto;
 
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -14,7 +14,7 @@ public class AppointmentRequest {
     private String doctor;
 
     @NotNull
-    @Future(message = "Appointment date must be in the future")
+    @FutureOrPresent(message = "Appointment date must be today or in the future")
     private LocalDate appointmentDate;
 
     @NotBlank
