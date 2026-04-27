@@ -11,6 +11,7 @@ import com.queuecare.queuecare.repository.AppointmentRepository;
 import com.queuecare.queuecare.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -90,6 +91,29 @@ public class AppointmentService {
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
+    // TODAY'S QUEUE
+    public List<AppointmentResponse> getTodayQueue() {
+        return appointmentRepository
+                .findByAppointmentDateOrderByQueueNumberAsc(LocalDate.now())
+                .stream().map(AppointmentResponse::from).toList();
+    }
+
+    // MARK AS SERVED
+    public AppointmentResponse markServed(Long userId, Long appointmentId) {
+        User user = getUser(userId);
+        if (!isPrivileged(user)) {
+            throw new ForbiddenException("Only staff or admin can mark patients as served");
+        }
+        Appointment appointment = getAppointment(appointmentId);
+        if (appointment.getStatus() == Appointment.Status.COMPLETED) {
+            throw new ConflictException("Patient is already marked as served");
+        }
+        if (appointment.getStatus() == Appointment.Status.CANCELED) {
+            throw new ConflictException("Cannot serve a cancelled appointment");
+        }
+        appointment.setStatus(Appointment.Status.COMPLETED);
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
