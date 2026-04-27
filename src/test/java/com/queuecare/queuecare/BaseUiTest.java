@@ -22,6 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -101,29 +102,25 @@ public abstract class BaseUiTest {
     }
 
     private static Browser launchBrowser(Playwright playwright) {
-        BrowserType.LaunchOptions headedEdge = new BrowserType.LaunchOptions()
-                .setChannel("msedge")
-                .setHeadless(true);
-        try {
-            return playwright.chromium().launch(headedEdge);
-        } catch (RuntimeException ignored) {
+        List<Path> browserPaths = List.of(
+                Path.of("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"),
+                Path.of("C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe"),
+                Path.of("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"),
+                Path.of("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe")
+        );
+
+        for (Path browserPath : browserPaths) {
+            if (!Files.exists(browserPath)) {
+                continue;
+            }
+            try {
+                return playwright.chromium().launch(new BrowserType.LaunchOptions()
+                        .setExecutablePath(browserPath)
+                        .setHeadless(true));
+            } catch (RuntimeException ignored) {
+            }
         }
 
-        BrowserType.LaunchOptions chrome = new BrowserType.LaunchOptions()
-                .setChannel("chrome")
-                .setHeadless(true);
-        try {
-            return playwright.chromium().launch(chrome);
-        } catch (RuntimeException ignored) {
-        }
-
-        Path edgePath = Path.of("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
-        if (Files.exists(edgePath)) {
-            return playwright.chromium().launch(new BrowserType.LaunchOptions()
-                    .setExecutablePath(edgePath)
-                    .setHeadless(true));
-        }
-
-        return playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        throw new IllegalStateException("Could not launch a local Edge or Chrome browser for UI tests.");
     }
 }

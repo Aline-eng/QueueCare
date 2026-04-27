@@ -122,6 +122,9 @@ class QueueCareUiTest extends BaseUiTest {
 
         Locator updatedRow = page.getByTestId("appointment-row-" + rowId);
         updatedRow.waitFor();
+        waitForText(updatedRow, "Dr. Brown");
+        waitForText(updatedRow, "Follow-up review");
+        waitForText(updatedRow, updatedDate);
         assertTrue(updatedRow.textContent().contains("Dr. Brown"));
         assertTrue(updatedRow.textContent().contains("Follow-up review"));
         assertTrue(updatedRow.textContent().contains(updatedDate));
@@ -153,6 +156,17 @@ class QueueCareUiTest extends BaseUiTest {
 
         Locator canceledRow = page.getByTestId("appointment-row-" + rowId);
         canceledRow.waitFor();
+        waitForText(canceledRow, "CANCELED");
         assertTrue(canceledRow.textContent().contains("CANCELED"));
+    }
+
+    private void waitForText(Locator locator, String expectedText) {
+        for (int i = 0; i < 20; i++) {
+            String text = locator.textContent();
+            if (text != null && text.contains(expectedText)) {
+                return;
+            }
+            page.waitForTimeout(150);
+        }
     }
 }
