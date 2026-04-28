@@ -2,6 +2,10 @@
 
 A clinic appointment management system with queue management, role-based dashboards, and a full automated test suite.
 
+**Live Demo:** https://queuecare-d1qm.onrender.com
+
+> Note: The app is hosted on Render's free tier. It may take 30-60 seconds to wake up on the first request.
+
 ## Prerequisites
 
 - Java 21
