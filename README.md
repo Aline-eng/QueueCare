@@ -1,99 +1,100 @@
 # QueueCare
 
-A clinic appointment system with queue management, role-based access, and a full automated test suite.
+A clinic appointment management system with queue management, role-based dashboards, and a full automated test suite.
 
 ## Prerequisites
 
 - Java 21
 - Maven (or use the included `mvnw` wrapper)
-- PostgreSQL 14+ (for running the app; tests use H2 in-memory)
-- Node.js 18+ and npm (for UI tests)
+- PostgreSQL 14+ (for running the app — tests use H2 in-memory, no PostgreSQL needed for tests)
+- A Chromium or Edge browser installed (for UI tests)
 
 ## Stack
 
 - Backend: Java 21 + Spring Boot 3.2
 - Auth: Bearer token (UUID-based, in-memory store) + BCrypt password hashing
-- Database: PostgreSQL (production), H2 (tests)
+- Database: PostgreSQL (production), H2 in-memory (tests)
 - API Tests: RestAssured + JUnit 5
-- UI Tests: Playwright (Chromium)
+- UI Tests: Playwright for Java (Chromium/Edge)
 
 ## Setup
 
-### 1. Database
-
-Create a PostgreSQL database named `queuecare`:
+### 1. Create the database
 
 ```sql
 CREATE DATABASE queuecare;
 ```
 
-### 2. Environment variables (optional)
+### 2. Configure credentials
 
-The app defaults to `localhost:5432` with user/password `postgres`. Override with:
+The app defaults to `localhost:5432`, username `postgres`. Set these environment variables to override:
 
 ```
 QUEUECARE_DB_URL=jdbc:postgresql://localhost:5432/queuecare
 QUEUECARE_DB_USERNAME=postgres
-QUEUECARE_DB_PASSWORD=postgres
+QUEUECARE_DB_PASSWORD=your_password
 ```
+
+Or edit `src/main/resources/application.properties` directly.
 
 ### 3. Start the application
 
 ```bash
-./mvnw spring-boot:run
+./mvnw spring-boot:run        # Linux / macOS
+mvnw.cmd spring-boot:run      # Windows
 ```
 
-The app starts on `http://localhost:8080`. Opening that URL redirects to the login page.
+The app starts on `http://localhost:8080` and redirects to the login page.
 
 ## Default test credentials
 
-The app has no seed data. Register via the UI at `/register.html` or via the API:
+The app has no seed data. Use the register page or the API to create users.
 
 ```bash
-# Register a patient
+# Register a patient (via UI: http://localhost:8080/register.html)
 curl -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Alice","email":"alice@example.com","password":"password123"}'
+  -d '{"name":"Alice Patient","email":"alice@example.com","password":"password123"}'
 
-# Register staff
+# Register a staff / doctor
 curl -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Bob Staff","email":"bob@example.com","password":"password123","role":"STAFF"}'
+  -d '{"name":"Dr. Smith","email":"smith@example.com","password":"password123","role":"STAFF"}'
+
+# Register an admin
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin User","email":"admin@example.com","password":"password123","role":"ADMIN"}'
 ```
 
-## Running API tests
+> **Note:** The public register page (`/register.html`) only creates PATIENT accounts. Staff and Admin accounts must be created via the API or through the Admin dashboard once an admin account exists.
 
-Tests use H2 in-memory — no database setup needed.
+## Running all tests
+
+Tests use H2 in-memory — no PostgreSQL setup needed.
 
 ```bash
-./mvnw test
+./mvnw test        # Linux / macOS
+mvnw.cmd test      # Windows
 ```
 
-All 38 tests should pass.
+Expected result: **45 tests, 0 failures, 0 errors**
 
-## Running UI tests
+| Suite | Tests |
+|-------|-------|
+| AuthApiTest | 12 |
+| AppointmentApiTest | 17 |
+| QueueApiTest | 8 |
+| QueueCareUiTest | 7 |
+| QueuecareApplicationTests | 1 |
 
-The application must be running before executing UI tests.
+UI tests launch a headless Chromium or Edge browser automatically. The test runner detects whichever is installed on the machine.
 
-```bash
-# 1. Start the app (in one terminal)
-./mvnw spring-boot:run
+## Postman collection
 
-# 2. Install Playwright dependencies (first time only)
-cd e2e
-npm install
-npx playwright install chromium
+A Postman collection is included at `postman/QueueCare_Auth.postman_collection.json`.
 
-# 3. Run UI tests
-npm test
-```
-
-To view an HTML report after the run:
-
-```bash
-npm run test:report
-npx playwright show-report
-```
+Import it into Postman and run the collection in order (Auth → Appointments → Queue). The Login request auto-saves the token to a collection variable used by all subsequent requests.
 
 ## API overview
 
@@ -101,16 +102,30 @@ npx playwright show-report
 |--------|----------|------|-------------|
 | POST | `/auth/register` | Public | Register a new user |
 | POST | `/auth/login` | Public | Login, receive token |
-| GET | `/appointments` | Any role | Patient: own only; Staff/Admin: all |
-| POST | `/appointments` | Any role | Create appointment |
+| GET | `/auth/me` | Any | Get current user info |
+| GET | `/appointments` | Any | Patient: own only; Staff/Admin: all |
+| POST | `/appointments` | Any | Create appointment |
 | GET | `/appointments/{id}` | Owner or Staff/Admin | Get by ID |
 | PUT | `/appointments/{id}` | Owner or Staff/Admin | Update |
 | DELETE | `/appointments/{id}` | Owner or Staff/Admin | Cancel |
-| GET | `/queue/today` | Staff/Admin only | Today's queue ordered by queue number |
+| GET | `/queue/today` | Any authenticated | Today's queue ordered by queue number |
 | PATCH | `/queue/{id}/serve` | Staff/Admin only | Mark patient as served |
+| GET | `/users` | Admin only | List all users |
+| DELETE | `/users/{id}` | Admin only | Delete a user |
+| GET | `/users/doctors` | Any authenticated | List all staff (for doctor dropdown) |
 
-## Roles
+## Roles and dashboards
 
-- `PATIENT` — manages own appointments only
-- `STAFF` — views and manages all appointments, marks patients as served
-- `ADMIN` — same as STAFF
+| Role | Dashboard | Capabilities |
+|------|-----------|--------------|
+| `PATIENT` | `/patient-dashboard.html` | Book appointments (doctor dropdown), view own appointments, edit/cancel scheduled appointments |
+| `STAFF` | `/staff-dashboard.html` | View today's queue filtered to their name, mark patients as served, view all their appointments |
+| `ADMIN` | `/admin-dashboard.html` | View all appointments, manage all users (create/delete), view and manage today's full queue |
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUEUECARE_DB_URL` | `jdbc:postgresql://localhost:5432/queuecare` | JDBC URL |
+| `QUEUECARE_DB_USERNAME` | `postgres` | DB username |
+| `QUEUECARE_DB_PASSWORD` | `aline123` | DB password |
