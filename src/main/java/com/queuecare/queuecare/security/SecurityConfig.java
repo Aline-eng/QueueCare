@@ -15,6 +15,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.queuecare.queuecare.service.TokenService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.io.IOException;
 
@@ -34,6 +36,11 @@ public class SecurityConfig {
             )
             .addFilterBefore(tokenAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

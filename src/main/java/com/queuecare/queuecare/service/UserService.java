@@ -1,5 +1,6 @@
 package com.queuecare.queuecare.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.queuecare.queuecare.dto.LoginRequest;
@@ -12,9 +13,11 @@ import com.queuecare.queuecare.repository.UserRepository;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // REGISTER
@@ -25,7 +28,7 @@ public class UserService {
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole() == null ? User.Role.PATIENT : request.getRole())
                 .build();
         return userRepository.save(user);
@@ -36,7 +39,7 @@ public class UserService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        if (!user.getPassword().equals(request.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Invalid email or password");
         }
         return TokenService.generateToken(user.getId());
