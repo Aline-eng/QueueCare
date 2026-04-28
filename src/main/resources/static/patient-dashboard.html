@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QueueCare - Patient Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7fafc; min-height: 100vh; }
+    header {
+      background: linear-gradient(90deg, #1a365d, #2b6cb0);
+      color: #fff; padding: 0 2rem; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-left h1 { font-size: 1.3rem; font-weight: 700; }
+    .header-left .role-badge {
+      background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem;
+      border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .header-right span { font-size: 0.9rem; opacity: 0.9; }
+    .btn-logout {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4);
+      color: #fff; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.25); }
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #4299e1;
+    }
+    .stat-card.green { border-left-color: #48bb78; }
+    .stat-card.orange { border-left-color: #ed8936; }
+    .stat-card .stat-num { font-size: 2rem; font-weight: 700; color: #2d3748; }
+    .stat-card .stat-label { font-size: 0.8rem; color: #718096; margin-top: 0.2rem; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .card-header h2 { font-size: 1.05rem; font-weight: 600; color: #2d3748; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.82rem; font-weight: 600; color: #4a5568; }
+    input, select, textarea {
+      padding: 0.65rem 0.9rem; border: 1.5px solid #e2e8f0; border-radius: 7px;
+      font-size: 0.9rem; color: #2d3748; background: #fff; transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.12);
+    }
+    input:disabled, select:disabled { background: #f7fafc; color: #a0aec0; }
+    .btn { padding: 0.6rem 1.4rem; border: none; border-radius: 7px; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #2b6cb0; color: #fff; }
+    .btn-primary:hover { background: #1a4f8a; }
+    .btn-danger { background: #fff; color: #e53e3e; border: 1.5px solid #fc8181; }
+    .btn-danger:hover { background: #fff5f5; }
+    .btn-secondary { background: #fff; color: #4a5568; border: 1.5px solid #e2e8f0; }
+    .btn-secondary:hover { background: #f7fafc; }
+    .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+    .alert { padding: 0.7rem 1rem; border-radius: 7px; font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+    .alert-error { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+    .alert-success { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.7rem 0.75rem; background: #f7fafc; color: #4a5568; font-weight: 600; border-bottom: 2px solid #e2e8f0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.75rem; border-bottom: 1px solid #f0f4f8; color: #2d3748; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge-scheduled { background: #ebf8ff; color: #2b6cb0; }
+    .badge-completed { background: #f0fff4; color: #276749; }
+    .badge-canceled { background: #fff5f5; color: #c53030; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #a0aec0; }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .actions { display: flex; gap: 0.4rem; }
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      justify-content: center; align-items: center; z-index: 100; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 2rem; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .modal h3 { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-bottom: 1.25rem; }
+    .modal-footer { display: flex; gap: 0.75rem; margin-top: 1.25rem; justify-content: flex-end; }
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🏥 QueueCare</h1>
+      <span class="role-badge">Patient</span>
+    </div>
+    <div class="header-right">
+      <span id="user-name"></span>
+      <button class="btn-logout" data-testid="logout-button" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total">-</div>
+        <div class="stat-label">Total Appointments</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-num" id="stat-scheduled">-</div>
+        <div class="stat-label">Upcoming</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-num" id="stat-completed">-</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+
+    <!-- Book Appointment -->
+    <div class="card">
+      <div class="card-header"><h2>📅 Book New Appointment</h2></div>
+      <form id="book-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="doctor">Select Doctor</label>
+            <select id="doctor" data-testid="doctor-input" required>
+              <option value="">-- Choose a doctor --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="appointment-date">Appointment Date</label>
+            <input id="appointment-date" type="date" data-testid="date-input" required/>
+          </div>
+          <div class="form-group full">
+            <label for="reason">Reason for Visit</label>
+            <input id="reason" type="text" data-testid="reason-input" placeholder="Describe your symptoms or reason" required/>
+          </div>
+        </div>
+        <div style="margin-top:1rem;">
+          <button type="submit" class="btn btn-primary" data-testid="book-button">Book Appointment</button>
+        </div>
+        <div id="book-error" class="alert alert-error" data-testid="book-error"></div>
+        <div id="book-success" class="alert alert-success" data-testid="book-success"></div>
+      </form>
+    </div>
+
+    <!-- My Appointments -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📋 My Appointments</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Reason</th>
+            <th>Queue #</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="appointments-tbody" data-testid="appointments-list">
+          <tr><td colspan="6"><div class="empty-state"><div class="icon">📭</div>Loading...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" class="modal-overlay" data-testid="edit-modal">
+    <div class="modal">
+      <h3>✏️ Update Appointment</h3>
+      <input type="hidden" id="edit-id"/>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Doctor</label>
+          <select id="edit-doctor" data-testid="edit-doctor-input">
+            <option value="">-- Choose a doctor --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input id="edit-date" type="date" data-testid="edit-date-input"/>
+        </div>
+        <div class="form-group full">
+          <label>Reason</label>
+          <input id="edit-reason" type="text" data-testid="edit-reason-input"/>
+        </div>
+      </div>
+      <div id="edit-error" class="alert alert-error" data-testid="edit-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-testid="edit-cancel-button" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" data-testid="edit-save-button" onclick="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user) { window.location.href = '/login.html'; }
+    if (user && user.role !== 'PATIENT') { window.location.href = '/login.html'; }
+
+    document.getElementById('user-name').textContent = user?.name || '';
+
+    // Set min date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    document.getElementById('appointment-date').min = minDate;
+    document.getElementById('edit-date').min = minDate;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+    }
+
+    function badgeClass(s) {
+      return { SCHEDULED: 'badge-scheduled', COMPLETED: 'badge-completed', CANCELED: 'badge-canceled' }[s] || '';
+    }
+
+    async function loadDoctors() {
+      try {
+        const res = await fetch('/users/doctors', { headers: authHeaders() });
+        if (!res.ok) return;
+        const doctors = await res.json();
+        const opts = doctors.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+        document.getElementById('doctor').innerHTML = '<option value="">-- Choose a doctor --</option>' + opts;
+        document.getElementById('edit-doctor').innerHTML = '<option value="">-- Choose a doctor --</option>' + opts;
+      } catch {}
+    }
+
+    async function loadAppointments() {
+      const tbody = document.getElementById('appointments-tbody');
+      try {
+        const res = await fetch('/appointments', { headers: authHeaders() });
+        if (res.status === 401) { logout(); return; }
+        const data = await res.json();
+
+        document.getElementById('stat-total').textContent = data.length;
+        document.getElementById('stat-scheduled').textContent = data.filter(a => a.status === 'SCHEDULED').length;
+        document.getElementById('stat-completed').textContent = data.filter(a => a.status === 'COMPLETED').length;
+
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">📭</div>No appointments yet. Book your first one above!</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(a => `
+          <tr data-testid="appointment-row-${a.id}">
+            <td><strong>${a.doctor}</strong></td>
+            <td>${formatDate(a.appointmentDate)}</td>
+            <td>${a.reason}</td>
+            <td><strong>#${a.queueNumber}</strong></td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+            <td>
+              <div class="actions">
+                ${a.status === 'SCHEDULED' ? `
+                  <button class="btn btn-secondary btn-sm" data-testid="edit-button-${a.id}" onclick="openEdit(${a.id},'${a.doctor}','${a.appointmentDate}','${a.reason}')">Edit</button>
+                  <button class="btn btn-danger btn-sm" data-testid="cancel-button-${a.id}" onclick="cancelAppointment(${a.id})">Cancel</button>
+                ` : '<span style="color:#a0aec0;font-size:0.8rem;">—</span>'}
+              </div>
+            </td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Failed to load appointments.</div></td></tr>';
+      }
+    }
+
+    function formatDate(d) {
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    document.getElementById('book-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('book-error');
+      const successEl = document.getElementById('book-success');
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      const doctor = document.getElementById('doctor').value;
+      const appointmentDate = document.getElementById('appointment-date').value;
+      const reason = document.getElementById('reason').value.trim();
+
+      if (!doctor || !appointmentDate || !reason) {
+        errorEl.textContent = 'All fields are required.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      if (appointmentDate <= new Date().toISOString().split('T')[0]) {
+        errorEl.textContent = 'Appointment date must be in the future.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const res = await fetch('/appointments', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ doctor, appointmentDate, reason })
+      });
+
+      if (res.status === 409) {
+        errorEl.textContent = 'You already have an active appointment on this date.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (res.status === 400) {
+        const d = await res.json();
+        errorEl.textContent = d.error || 'Invalid input.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (!res.ok) {
+        errorEl.textContent = 'Failed to book appointment.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      successEl.textContent = '✅ Appointment booked successfully!';
+      successEl.style.display = 'block';
+      document.getElementById('book-form').reset();
+      document.getElementById('appointment-date').min = minDate;
+      loadAppointments();
+      setTimeout(() => { successEl.style.display = 'none'; }, 3000);
+    });
+
+    async function cancelAppointment(id) {
+      if (!confirm('Are you sure you want to cancel this appointment?')) return;
+      const res = await fetch('/appointments/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok) loadAppointments();
+    }
+
+    function openEdit(id, doctor, date, reason) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-doctor').value = doctor;
+      document.getElementById('edit-date').value = date;
+      document.getElementById('edit-reason').value = reason;
+      document.getElementById('edit-error').style.display = 'none';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    async function saveEdit() {
+      const errorEl = document.getElementById('edit-error');
+      errorEl.style.display = 'none';
+      const id = document.getElementById('edit-id').value;
+      const doctor = document.getElementById('edit-doctor').value;
+      const appointmentDate = document.getElementById('edit-date').value;
+      const reason = document.getElementById('edit-reason').value.trim();
+
+      if (!doctor || !appointmentDate || !reason) {
+        errorEl.textContent = 'All fields are required.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (appointmentDate <= new Date().toISOString().split('T')[0]) {
+        errorEl.textContent = 'Appointment date must be in the future.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const res = await fetch('/appointments/' + id, {
+        method: 'PUT', headers: authHeaders(),
+        body: JSON.stringify({ doctor, appointmentDate, reason })
+      });
+
+      if (res.status === 400) {
+        const d = await res.json();
+        errorEl.textContent = d.error || 'Invalid input.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (!res.ok) {
+        errorEl.textContent = 'Failed to update appointment.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      closeModal();
+      loadAppointments();
+    }
+
+    loadDoctors();
+    loadAppointments();
+  </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QueueCare - Staff Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7fafc; min-height: 100vh; }
+    header {
+      background: linear-gradient(90deg, #276749, #38a169);
+      color: #fff; padding: 0 2rem; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-left h1 { font-size: 1.3rem; font-weight: 700; }
+    .role-badge { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .header-right span { font-size: 0.9rem; opacity: 0.9; }
+    .btn-logout { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+    .btn-logout:hover { background: rgba(255,255,255,0.25); }
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #38a169; }
+    .stat-card.blue { border-left-color: #4299e1; }
+    .stat-card.orange { border-left-color: #ed8936; }
+    .stat-num { font-size: 2rem; font-weight: 700; color: #2d3748; }
+    .stat-label { font-size: 0.8rem; color: #718096; margin-top: 0.2rem; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .card-header h2 { font-size: 1.05rem; font-weight: 600; color: #2d3748; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tab { padding: 0.55rem 1.25rem; border-radius: 7px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 0.875rem; font-weight: 600; color: #4a5568; transition: all 0.2s; }
+    .tab.active { background: #38a169; color: #fff; border-color: #38a169; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.7rem 0.75rem; background: #f7fafc; color: #4a5568; font-weight: 600; border-bottom: 2px solid #e2e8f0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.75rem; border-bottom: 1px solid #f0f4f8; color: #2d3748; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge-scheduled { background: #ebf8ff; color: #2b6cb0; }
+    .badge-completed { background: #f0fff4; color: #276749; }
+    .badge-canceled { background: #fff5f5; color: #c53030; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 7px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+    .btn-success { background: #38a169; color: #fff; }
+    .btn-success:hover { background: #276749; }
+    .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.78rem; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #a0aec0; }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .queue-number { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #ebf8ff; color: #2b6cb0; border-radius: 50%; font-weight: 700; font-size: 0.9rem; }
+    @media (max-width: 600px) { .stats-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🏥 QueueCare</h1>
+      <span class="role-badge">Staff / Doctor</span>
+    </div>
+    <div class="header-right">
+      <span id="user-name"></span>
+      <button class="btn-logout" data-testid="logout-button" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-num" id="stat-today">-</div>
+        <div class="stat-label">My Patients Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-waiting">-</div>
+        <div class="stat-label">Waiting</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-num" id="stat-served">-</div>
+        <div class="stat-label">Served Today</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('queue')">🕐 Today's Queue</button>
+      <button class="tab" onclick="switchTab('all')">📋 All My Appointments</button>
+    </div>
+
+    <!-- Today's Queue Tab -->
+    <div id="tab-queue" class="tab-content active">
+      <div class="card">
+        <div class="card-header"><h2>Today's Patient Queue</h2></div>
+        <table>
+          <thead>
+            <tr><th>Queue</th><th>Patient</th><th>Reason</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody id="queue-tbody" data-testid="queue-list">
+            <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- All Appointments Tab -->
+    <div id="tab-all" class="tab-content">
+      <div class="card">
+        <div class="card-header"><h2>All My Appointments</h2></div>
+        <table>
+          <thead>
+            <tr><th>Patient</th><th>Date</th><th>Reason</th><th>Queue #</th><th>Status</th></tr>
+          </thead>
+          <tbody id="all-tbody" data-testid="appointments-list">
+            <tr><td colspan="5"><div class="empty-state"><div class="icon">📭</div>Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user) { window.location.href = '/login.html'; }
+    if (user && user.role !== 'STAFF') { window.location.href = '/login.html'; }
+
+    document.getElementById('user-name').textContent = 'Dr. ' + (user?.name || '');
+
+    function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+    function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }; }
+    function badgeClass(s) { return { SCHEDULED: 'badge-scheduled', COMPLETED: 'badge-completed', CANCELED: 'badge-canceled' }[s] || ''; }
+    function formatDate(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['queue','all'][i] === name));
+      document.getElementById('tab-queue').classList.toggle('active', name === 'queue');
+      document.getElementById('tab-all').classList.toggle('active', name === 'all');
+    }
+
+    async function loadQueue() {
+      const tbody = document.getElementById('queue-tbody');
+      try {
+        const res = await fetch('/queue/today', { headers: authHeaders() });
+        if (!res.ok) return;
+        const all = await res.json();
+        const mine = all.filter(a => a.doctor === user.name);
+
+        document.getElementById('stat-today').textContent = mine.length;
+        document.getElementById('stat-waiting').textContent = mine.filter(a => a.status === 'SCHEDULED').length;
+        document.getElementById('stat-served').textContent = mine.filter(a => a.status === 'COMPLETED').length;
+
+        if (!mine.length) {
+          tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">✅</div>No patients in queue today.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = mine.map(a => `
+          <tr data-testid="queue-row-${a.id}">
+            <td><span class="queue-number">${a.queueNumber}</span></td>
+            <td><strong>${a.patientName}</strong></td>
+            <td>${a.reason}</td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+            <td>
+              ${a.status === 'SCHEDULED'
+                ? `<button class="btn btn-success btn-sm" data-testid="serve-button-${a.id}" onclick="markServed(${a.id})">✓ Mark Served</button>`
+                : '<span style="color:#a0aec0;font-size:0.8rem;">—</span>'}
+            </td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Failed to load queue.</div></td></tr>';
+      }
+    }
+
+    async function loadAllAppointments() {
+      const tbody = document.getElementById('all-tbody');
+      try {
+        const res = await fetch('/appointments', { headers: authHeaders() });
+        if (res.status === 401) { logout(); return; }
+        const all = await res.json();
+        const mine = all.filter(a => a.doctor === user.name);
+
+        if (!mine.length) {
+          tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">📭</div>No appointments assigned to you yet.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = mine.map(a => `
+          <tr data-testid="appointment-row-${a.id}">
+            <td><strong>${a.patientName}</strong></td>
+            <td>${formatDate(a.appointmentDate)}</td>
+            <td>${a.reason}</td>
+            <td><strong>#${a.queueNumber}</strong></td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Failed to load appointments.</div></td></tr>';
+      }
+    }
+
+    async function markServed(id) {
+      const res = await fetch('/queue/' + id + '/serve', { method: 'PATCH', headers: authHeaders() });
+      if (res.ok) { loadQueue(); loadAllAppointments(); }
+    }
+
+    loadQueue();
+    loadAllAppointments();
+  </script>
+</body>
+</html>

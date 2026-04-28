@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QueueCare - Admin Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7fafc; min-height: 100vh; }
+    header {
+      background: linear-gradient(90deg, #44337a, #6b46c1);
+      color: #fff; padding: 0 2rem; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-left h1 { font-size: 1.3rem; font-weight: 700; }
+    .role-badge { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .header-right span { font-size: 0.9rem; opacity: 0.9; }
+    .btn-logout { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+    .btn-logout:hover { background: rgba(255,255,255,0.25); }
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #6b46c1; }
+    .stat-card.blue { border-left-color: #4299e1; }
+    .stat-card.green { border-left-color: #38a169; }
+    .stat-card.orange { border-left-color: #ed8936; }
+    .stat-num { font-size: 2rem; font-weight: 700; color: #2d3748; }
+    .stat-label { font-size: 0.8rem; color: #718096; margin-top: 0.2rem; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { padding: 0.55rem 1.25rem; border-radius: 7px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 0.875rem; font-weight: 600; color: #4a5568; transition: all 0.2s; }
+    .tab.active { background: #6b46c1; color: #fff; border-color: #6b46c1; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .card-header h2 { font-size: 1.05rem; font-weight: 600; color: #2d3748; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.82rem; font-weight: 600; color: #4a5568; }
+    input, select { padding: 0.65rem 0.9rem; border: 1.5px solid #e2e8f0; border-radius: 7px; font-size: 0.9rem; color: #2d3748; background: #fff; transition: border-color 0.2s; }
+    input:focus, select:focus { outline: none; border-color: #6b46c1; box-shadow: 0 0 0 3px rgba(107,70,193,0.12); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.7rem 0.75rem; background: #f7fafc; color: #4a5568; font-weight: 600; border-bottom: 2px solid #e2e8f0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.75rem; border-bottom: 1px solid #f0f4f8; color: #2d3748; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge-scheduled { background: #ebf8ff; color: #2b6cb0; }
+    .badge-completed { background: #f0fff4; color: #276749; }
+    .badge-canceled { background: #fff5f5; color: #c53030; }
+    .badge-patient { background: #ebf8ff; color: #2b6cb0; }
+    .badge-staff { background: #f0fff4; color: #276749; }
+    .badge-admin { background: #faf5ff; color: #6b46c1; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 7px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #6b46c1; color: #fff; }
+    .btn-primary:hover { background: #553c9a; }
+    .btn-danger { background: #fff; color: #e53e3e; border: 1.5px solid #fc8181; }
+    .btn-danger:hover { background: #fff5f5; }
+    .btn-success { background: #38a169; color: #fff; }
+    .btn-success:hover { background: #276749; }
+    .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.78rem; }
+    .alert { padding: 0.7rem 1rem; border-radius: 7px; font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+    .alert-error { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+    .alert-success { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #a0aec0; }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .actions { display: flex; gap: 0.4rem; }
+    .filter-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-row input, .filter-row select { flex: 1; min-width: 150px; padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+    @media (max-width: 700px) { .stats-row { grid-template-columns: 1fr 1fr; } .form-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🏥 QueueCare</h1>
+      <span class="role-badge">Administrator</span>
+    </div>
+    <div class="header-right">
+      <span id="user-name"></span>
+      <button class="btn-logout" data-testid="logout-button" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-num" id="stat-appointments">-</div>
+        <div class="stat-label">Total Appointments</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-num" id="stat-today">-</div>
+        <div class="stat-label">Today's Queue</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-num" id="stat-users">-</div>
+        <div class="stat-label">Registered Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-staff">-</div>
+        <div class="stat-label">Doctors / Staff</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('queue')">🕐 Today's Queue</button>
+      <button class="tab" onclick="switchTab('appointments')">📋 All Appointments</button>
+      <button class="tab" onclick="switchTab('users')">👥 User Management</button>
+      <button class="tab" onclick="switchTab('add-user')">➕ Add User</button>
+    </div>
+
+    <!-- Today's Queue -->
+    <div id="tab-queue" class="tab-content active">
+      <div class="card">
+        <div class="card-header"><h2>Today's Queue</h2></div>
+        <table>
+          <thead><tr><th>Queue #</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="queue-tbody" data-testid="queue-list">
+            <tr><td colspan="6"><div class="empty-state"><div class="icon">⏳</div>Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- All Appointments -->
+    <div id="tab-appointments" class="tab-content">
+      <div class="card">
+        <div class="card-header"><h2>All Appointments</h2></div>
+        <div class="filter-row">
+          <input id="filter-patient" type="text" placeholder="Filter by patient..." oninput="filterAppointments()"/>
+          <select id="filter-status" onchange="filterAppointments()">
+            <option value="">All statuses</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELED">Canceled</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Reason</th><th>Queue #</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="appointments-tbody" data-testid="appointments-list">
+            <tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- User Management -->
+    <div id="tab-users" class="tab-content">
+      <div class="card">
+        <div class="card-header"><h2>All Users</h2></div>
+        <div class="filter-row">
+          <input id="filter-user" type="text" placeholder="Filter by name or email..." oninput="filterUsers()"/>
+          <select id="filter-role" onchange="filterUsers()">
+            <option value="">All roles</option>
+            <option value="PATIENT">Patient</option>
+            <option value="STAFF">Staff</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+          <tbody id="users-tbody" data-testid="users-list">
+            <tr><td colspan="4"><div class="empty-state"><div class="icon">👥</div>Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add User -->
+    <div id="tab-add-user" class="tab-content">
+      <div class="card">
+        <div class="card-header"><h2>Add New User</h2></div>
+        <form id="add-user-form" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="new-name">Full Name</label>
+              <input id="new-name" type="text" data-testid="new-name-input" placeholder="Full name" required/>
+            </div>
+            <div class="form-group">
+              <label for="new-email">Email</label>
+              <input id="new-email" type="email" data-testid="new-email-input" placeholder="email@example.com" required/>
+            </div>
+            <div class="form-group">
+              <label for="new-password">Password</label>
+              <input id="new-password" type="password" data-testid="new-password-input" placeholder="Minimum 6 characters" required/>
+            </div>
+            <div class="form-group">
+              <label for="new-role">Role</label>
+              <select id="new-role" data-testid="new-role-select">
+                <option value="PATIENT">Patient</option>
+                <option value="STAFF">Staff / Doctor</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:1rem;">
+            <button type="submit" class="btn btn-primary" data-testid="add-user-button">Create User</button>
+          </div>
+          <div id="add-user-error" class="alert alert-error" data-testid="add-user-error"></div>
+          <div id="add-user-success" class="alert alert-success" data-testid="add-user-success"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user) { window.location.href = '/login.html'; }
+    if (user && user.role !== 'ADMIN') { window.location.href = '/login.html'; }
+
+    document.getElementById('user-name').textContent = user?.name || '';
+
+    function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+    function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }; }
+    function badgeClass(s) { return { SCHEDULED: 'badge-scheduled', COMPLETED: 'badge-completed', CANCELED: 'badge-canceled' }[s] || ''; }
+    function roleBadge(r) { return { PATIENT: 'badge-patient', STAFF: 'badge-staff', ADMIN: 'badge-admin' }[r] || ''; }
+    function formatDate(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
+
+    const TABS = ['queue', 'appointments', 'users', 'add-user'];
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', TABS[i] === name));
+      TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === name));
+      if (name === 'appointments') loadAppointments();
+      if (name === 'users') loadUsers();
+    }
+
+    let allAppointments = [];
+    let allUsers = [];
+
+    async function loadQueue() {
+      const tbody = document.getElementById('queue-tbody');
+      try {
+        const res = await fetch('/queue/today', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('stat-today').textContent = data.length;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">✅</div>No patients in queue today.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(a => `
+          <tr data-testid="queue-row-${a.id}">
+            <td><strong>#${a.queueNumber}</strong></td>
+            <td>${a.patientName}</td>
+            <td>${a.doctor}</td>
+            <td>${a.reason}</td>
+            <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+            <td>${a.status === 'SCHEDULED'
+              ? `<button class="btn btn-success btn-sm" data-testid="serve-button-${a.id}" onclick="markServed(${a.id})">✓ Mark Served</button>`
+              : '<span style="color:#a0aec0">—</span>'}</td>
+          </tr>`).join('');
+      } catch {}
+    }
+
+    async function loadAppointments() {
+      const tbody = document.getElementById('appointments-tbody');
+      try {
+        const res = await fetch('/appointments', { headers: authHeaders() });
+        if (res.status === 401) { logout(); return; }
+        allAppointments = await res.json();
+        document.getElementById('stat-appointments').textContent = allAppointments.length;
+        renderAppointments(allAppointments);
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Failed to load.</div></td></tr>';
+      }
+    }
+
+    function renderAppointments(data) {
+      const tbody = document.getElementById('appointments-tbody');
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>No appointments found.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(a => `
+        <tr data-testid="appointment-row-${a.id}">
+          <td><strong>${a.patientName}</strong></td>
+          <td>${a.doctor}</td>
+          <td>${formatDate(a.appointmentDate)}</td>
+          <td>${a.reason}</td>
+          <td><strong>#${a.queueNumber}</strong></td>
+          <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+          <td>
+            <div class="actions">
+              ${a.status === 'SCHEDULED'
+                ? `<button class="btn btn-success btn-sm" onclick="markServed(${a.id})">Serve</button>
+                   <button class="btn btn-danger btn-sm" onclick="cancelAppointment(${a.id})">Cancel</button>`
+                : '<span style="color:#a0aec0">—</span>'}
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function filterAppointments() {
+      const name = document.getElementById('filter-patient').value.toLowerCase();
+      const status = document.getElementById('filter-status').value;
+      renderAppointments(allAppointments.filter(a =>
+        (!name || a.patientName.toLowerCase().includes(name)) &&
+        (!status || a.status === status)
+      ));
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById('users-tbody');
+      try {
+        const res = await fetch('/users', { headers: authHeaders() });
+        allUsers = await res.json();
+        document.getElementById('stat-users').textContent = allUsers.length;
+        document.getElementById('stat-staff').textContent = allUsers.filter(u => u.role === 'STAFF').length;
+        renderUsers(allUsers);
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state">Failed to load.</div></td></tr>';
+      }
+    }
+
+    function renderUsers(data) {
+      const tbody = document.getElementById('users-tbody');
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="icon">👥</div>No users found.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(u => `
+        <tr data-testid="user-row-${u.id}">
+          <td><strong>${u.name}</strong></td>
+          <td>${u.email}</td>
+          <td><span class="badge ${roleBadge(u.role)}">${u.role}</span></td>
+          <td>
+            ${u.id !== user.id
+              ? `<button class="btn btn-danger btn-sm" data-testid="delete-user-${u.id}" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>`
+              : '<span style="color:#a0aec0;font-size:0.8rem;">You</span>'}
+          </td>
+        </tr>`).join('');
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('filter-user').value.toLowerCase();
+      const role = document.getElementById('filter-role').value;
+      renderUsers(allUsers.filter(u =>
+        (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+        (!role || u.role === role)
+      ));
+    }
+
+    async function deleteUser(id, name) {
+      if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+      const res = await fetch('/users/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok) loadUsers();
+    }
+
+    async function cancelAppointment(id) {
+      if (!confirm('Cancel this appointment?')) return;
+      const res = await fetch('/appointments/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok) { loadAppointments(); loadQueue(); }
+    }
+
+    async function markServed(id) {
+      const res = await fetch('/queue/' + id + '/serve', { method: 'PATCH', headers: authHeaders() });
+      if (res.ok) { loadQueue(); loadAppointments(); }
+    }
+
+    document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('add-user-error');
+      const successEl = document.getElementById('add-user-success');
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      const name = document.getElementById('new-name').value.trim();
+      const email = document.getElementById('new-email').value.trim();
+      const password = document.getElementById('new-password').value;
+      const role = document.getElementById('new-role').value;
+
+      if (!name || !email || !password) {
+        errorEl.textContent = 'All fields are required.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const res = await fetch('/auth/register', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ name, email, password, role })
+      });
+
+      if (res.status === 409) {
+        errorEl.textContent = 'A user with this email already exists.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (!res.ok) {
+        const d = await res.json();
+        errorEl.textContent = d.error || 'Failed to create user.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      successEl.textContent = `✅ User "${name}" created successfully!`;
+      successEl.style.display = 'block';
+      document.getElementById('add-user-form').reset();
+      setTimeout(() => { successEl.style.display = 'none'; }, 3000);
+    });
+
+    loadQueue();
+    loadAppointments();
+  </script>
+</body>
+</html>

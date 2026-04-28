@@ -1,56 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>QueueCare - Login</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-    h1 { margin-bottom: 1.5rem; font-size: 1.5rem; color: #1a202c; }
-    label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #4a5568; }
-    input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 1rem; margin-bottom: 1rem; }
-    input:focus { outline: none; border-color: #4299e1; }
-    button { width: 100%; padding: 0.7rem; background: #4299e1; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-    button:hover { background: #3182ce; }
-    .error { color: #e53e3e; font-size: 0.875rem; margin-bottom: 1rem; display: none; }
-    .footer { margin-top: 1rem; text-align: center; font-size: 0.875rem; }
-    .footer a { color: #4299e1; text-decoration: none; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .wrapper { width: 100%; max-width: 420px; }
+    .logo { text-align: center; margin-bottom: 2rem; }
+    .logo h1 { color: #fff; font-size: 2rem; font-weight: 700; letter-spacing: 1px; }
+    .logo p { color: #bee3f8; font-size: 0.9rem; margin-top: 0.25rem; }
+    .card { background: #fff; border-radius: 12px; padding: 2.5rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .card h2 { font-size: 1.4rem; color: #1a202c; margin-bottom: 1.75rem; font-weight: 600; }
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #4a5568; margin-bottom: 0.4rem; }
+    input {
+      width: 100%; padding: 0.7rem 1rem; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 0.95rem; color: #2d3748; transition: border-color 0.2s;
+    }
+    input:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.15); }
+    .btn-submit {
+      width: 100%; padding: 0.8rem; background: #2b6cb0; color: #fff;
+      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 0.5rem; transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #1a4f8a; }
+    .btn-submit:disabled { background: #a0aec0; cursor: not-allowed; }
+    .alert { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; display: none; }
+    .alert-error { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+    .footer-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #718096; }
+    .footer-link a { color: #2b6cb0; font-weight: 600; text-decoration: none; }
+    .footer-link a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>QueueCare Login</h1>
-    <p id="error-msg" class="error" data-testid="error-message"></p>
-    <form id="login-form" novalidate>
-      <label for="email">Email</label>
-      <input id="email" type="email" data-testid="email-input" placeholder="you@example.com" required />
-
-      <label for="password">Password</label>
-      <input id="password" type="password" data-testid="password-input" placeholder="Password" required />
-
-      <button type="submit" data-testid="login-button">Login</button>
-    </form>
-    <div class="footer">
-      No account? <a href="/register.html" data-testid="register-link">Register</a>
+  <div class="wrapper">
+    <div class="logo">
+      <h1>QueueCare</h1>
+      <p>Clinic Appointment Management System</p>
+    </div>
+    <div class="card">
+      <h2>Welcome back</h2>
+      <div id="error-msg" class="alert alert-error" data-testid="error-message"></div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input id="email" type="email" data-testid="email-input" placeholder="you@example.com" autocomplete="email" required/>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" data-testid="password-input" placeholder="Enter your password" autocomplete="current-password" required/>
+        </div>
+        <button type="submit" class="btn-submit" data-testid="login-button">Sign In</button>
+      </form>
+      <div class="footer-link">
+        Don't have an account? <a href="/register.html" data-testid="register-link">Register</a>
+      </div>
     </div>
   </div>
 
   <script>
+    const ROLE_REDIRECT = {
+      PATIENT: '/patient-dashboard.html',
+      STAFF:   '/staff-dashboard.html',
+      ADMIN:   '/admin-dashboard.html'
+    };
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const errorEl = document.getElementById('error-msg');
+      const btn = document.querySelector('.btn-submit');
       errorEl.style.display = 'none';
 
       const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+      const password = document.getElementById('password').value;
 
       if (!email || !password) {
         errorEl.textContent = 'Email and password are required.';
         errorEl.style.display = 'block';
         return;
       }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
 
       try {
         const res = await fetch('/auth/login', {
@@ -64,19 +101,28 @@
           errorEl.style.display = 'block';
           return;
         }
-
         if (!res.ok) {
           errorEl.textContent = 'Something went wrong. Please try again.';
           errorEl.style.display = 'block';
           return;
         }
 
-        const data = await res.json();
-        localStorage.setItem('token', data.token);
-        window.location.href = '/appointments.html';
+        const { token } = await res.json();
+        localStorage.setItem('token', token);
+
+        const meRes = await fetch('/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const user = await meRes.json();
+        localStorage.setItem('user', JSON.stringify(user));
+
+        window.location.href = ROLE_REDIRECT[user.role] || '/patient-dashboard.html';
       } catch {
         errorEl.textContent = 'Could not connect to server.';
         errorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
       }
     });
   </script>
