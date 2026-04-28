@@ -274,6 +274,17 @@ class AppointmentApiTest extends BaseIntegrationTest {
     }
 
     @Test
+    void createAppointment_withInvalidDateFormat_returns400() {
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .header("Authorization", "Bearer " + patientToken)
+            .body("{\"doctor\":\"Dr. Smith\",\"appointmentDate\":\"not-a-date\",\"reason\":\"Test\"}")
+            .post("/appointments")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
     void updateAppointment_toPastDate_returns400() {
         int id = RestAssured.given()
             .contentType(ContentType.JSON)

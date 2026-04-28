@@ -3,6 +3,7 @@ package com.queuecare.queuecare.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -38,6 +39,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleUnreadable(HttpMessageNotReadableException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid request body or date format"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
