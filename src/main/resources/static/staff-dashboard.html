@@ -57,7 +57,7 @@
 <body>
   <header>
     <div class="header-left">
-      <h1>🏥 QueueCare</h1>
+      <h1>QueueCare</h1>
       <span class="role-badge">Staff / Doctor</span>
     </div>
     <div class="header-right">
@@ -150,7 +150,7 @@
         document.getElementById('stat-served').textContent = mine.filter(a => a.status === 'COMPLETED').length;
 
         if (!mine.length) {
-          tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">✅</div>No patients in queue today.</div></td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">!</div>No patients in queue today.</div></td></tr>';
           return;
         }
         tbody.innerHTML = mine.map(a => `
