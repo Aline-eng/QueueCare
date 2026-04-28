@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: queuecare
+    runtime: java
+    buildCommand: "./mvnw clean package -DskipTests"
+    startCommand: "java -jar target/queuecare-0.0.1-SNAPSHOT.jar"
+    envVars:
+      - key: QUEUECARE_DB_URL
+        fromDatabase:
+          name: queuecare-db
+          property: connectionString
+      - key: QUEUECARE_DB_USERNAME
+        fromDatabase:
+          name: queuecare-db
+          property: user
+      - key: QUEUECARE_DB_PASSWORD
+        fromDatabase:
+          name: queuecare-db
+          property: password
+      - key: PORT
+        value: 8080
+
+databases:
+  - name: queuecare-db
+    databaseName: queuecare
+    plan: free
